@@ -39,10 +39,10 @@ const registerUser = async (req: Request, res: Response) => {
   const encryptedPassword = await bcrypt.hash(password, 10);
 
   const user = {
-    username: username,
-    email: email,
+    username,
+    email,
     password: encryptedPassword,
-    role: role,
+    role,
     token: "",
   };
 
@@ -51,8 +51,8 @@ const registerUser = async (req: Request, res: Response) => {
       res.send(error);
     }
     const id = results.rows[0].id;
-    const role = results.rows[0].role;
-    const token = jwt.sign({ id: id, role: role }, process.env.JWT_SECRET, {
+    const _role = results.rows[0].role;
+    const token = jwt.sign({ id, _role }, process.env.JWT_SECRET, {
       expiresIn: 86400,
     });
     user.token = token;

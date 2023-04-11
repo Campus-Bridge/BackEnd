@@ -13,7 +13,7 @@ const getStudents = async (req: Request, res: Response) => {
 };
 
 const getStudentById = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id);
+  const id = req.params.id as unknown as number;
   pool.query("SELECT s.* FROM students s JOIN user_student us ON s.id = us.student_id WHERE us.user_id = $1;", [id], (error: Error, results: QueryArrayResult | QueryResult) => {
     if (error) {
       res.send(error);
