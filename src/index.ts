@@ -1,7 +1,7 @@
 import express, { Express } from "express";
 import studentRouter from "./student/routes";
 import userRouter from "./user/routes";
-require("dotenv").config();
+import {} from "dotenv/config";
 
 const app: Express = express();
 app.use(express.json());
