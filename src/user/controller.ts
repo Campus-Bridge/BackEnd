@@ -39,10 +39,10 @@ const registerUser = async (req: Request, res: Response) => {
   const encryptedPassword = await bcrypt.hash(password, 10);
 
   const user = {
-    username,
-    email,
+    username: username,
+    email: email,
     password: encryptedPassword,
-    role,
+    role: role,
     token: "",
   };
 
