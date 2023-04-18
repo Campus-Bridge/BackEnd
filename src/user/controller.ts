@@ -5,21 +5,35 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const loginUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-  pool.query("SELECT * FROM users WHERE email = $1 AND password = $2;", [email, password], (error: Error, results: QueryArrayResult | QueryResult) => {
+  const { email, password } = req.query;
+
+  if (!email || !password) {
+    res.status(200).json({ message: "Please fill all fields" });
+    return;
+  }
+
+  pool.query("SELECT * FROM users WHERE email = $1;", [email], (error: Error, results: QueryArrayResult | QueryResult) => {
     if (error) {
       res.send(error);
+      return;
+    }
+    if (results.rowCount === 0) {
+      res.status(200).json({ message: "Invalid credentials" });
+      return;
     }
     const user = results.rows[0];
-    const passwordIsValid = bcrypt.compareSync(password, user.password);
+    const passwordIsValid = bcrypt.compareSync(password.toString(), user.password);
+
     if (passwordIsValid) {
       const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, {
         expiresIn: 86400,
       });
 
       res.status(200).json(token);
+      return;
     } else {
-      res.status(400).json({ message: "Invalid credentials" });
+      res.status(200).json({ message: "Invalid credentials" });
+      return;
     }
   });
 };
@@ -28,12 +42,12 @@ const registerUser = async (req: Request, res: Response) => {
   const { username, email, password, role } = req.body;
 
   if (!username || !email || !password) {
-    res.status(400).json({ message: "Please fill all fields" });
+    res.status(200).json({ message: "Please fill all fields" });
   }
 
   const userExists = await pool.query("SELECT * FROM users WHERE email = $1;", [email]);
   if (userExists.rowCount > 0) {
-    res.status(400).json({ message: "User already exists" });
+    res.status(200).json({ message: "User already exists" });
   }
 
   const encryptedPassword = await bcrypt.hash(password, 10);
@@ -62,17 +76,24 @@ const registerUser = async (req: Request, res: Response) => {
 };
 
 const checkToken = async (req: Request, res: Response) => {
-  const token = req.headers["x-access-token"];
+  const token = req.headers["authorization"];
   if (!token) {
-    res.status(401).json({ message: "No token provided" });
+    res.status(201).json({ message: "No token provided" });
+    return;
   }
 
   jwt.verify(token.toString(), process.env.JWT_SECRET, (err: any, decoded: any) => {
     if (err) {
-      res.status(401).json({ message: "Unauthorized" });
+      res.status(200).json({ message: "Unauthorized" });
+      return;
     }
     res.status(200).json(decoded);
+    return;
   });
 };
 
-export { loginUser, registerUser, checkToken };
+const logOut = async (req: Request, res: Response) => {
+  res.status(200).json({ message: "Logged out" }).clearCookie("token");
+};
+
+export { loginUser, registerUser, checkToken, logOut };
