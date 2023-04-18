@@ -93,7 +93,7 @@ const checkToken = async (req: Request, res: Response) => {
 };
 
 const logOut = async (req: Request, res: Response) => {
-  res.status(200).json({ message: "Logged out" }).clearCookie("token");
+  res.status(200).clearCookie("token").json({ message: "Logged out" });
 };
 
 export { loginUser, registerUser, checkToken, logOut };
