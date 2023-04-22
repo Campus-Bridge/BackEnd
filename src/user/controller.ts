@@ -3,6 +3,9 @@ import { Request, Response } from "express";
 import { QueryArrayResult, QueryResult } from "pg";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import dotenv from "dotenv";
+dotenv.config();
 
 const loginUser = async (req: Request, res: Response) => {
   const { email, password } = req.query;
@@ -96,4 +99,65 @@ const logOut = async (req: Request, res: Response) => {
   res.status(200).clearCookie("token").json({ message: "Logged out" });
 };
 
-export { loginUser, registerUser, checkToken, logOut };
+const forgotPassword = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(200).json({ message: "Please fill all fields" });
+    return;
+  }
+
+  const userExists = await pool.query("SELECT * FROM users WHERE email = $1;", [email]);
+  if (userExists.rowCount === 0) {
+    res.status(200).json({ message: "User does not exist" });
+    return;
+  }
+
+  const client = new SESClient({
+    region: "us-east-1",
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+  });
+  const params = {
+    Destination: {
+      ToAddresses: [email],
+    },
+    Message: {
+      Body: {
+        Html: {
+          Charset: "UTF-8",
+          Data: `<html>
+          <head>
+            <title>Reset Password</title>
+          </head>
+          <body>
+            <h1>Reset Password</h1>
+            <p>Click the link below to reset your password</p>
+            <a href="http://localhost:3000/reset-password">Reset Password</a>
+          </body>
+        </html>`,
+        },
+      },
+      Subject: {
+        Charset: "UTF-8",
+        Data: "Reset Password",
+      },
+    },
+    Source: "adrianrogowski80@gmail.com",
+  };
+
+  const command = new SendEmailCommand(params);
+
+  try {
+    const data = await client.send(command);
+    console.log("Wiadomość e-mail została wysłana. ID transakcji:", data.MessageId);
+    res.status(200).json({ message: "Email sent" });
+  } catch (err) {
+    console.error("Błąd podczas wysyłania wiadomości e-mail:", err);
+    res.status(200).json({ message: "Email not sent" });
+  }
+};
+
+export { loginUser, registerUser, checkToken, logOut, forgotPassword };
