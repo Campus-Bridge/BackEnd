@@ -18,7 +18,7 @@ const getStudentById = async (req: Request, res: Response) => {
     if (error) {
       res.send(error);
     }
-    res.status(200).json(results.rows);
+    res.status(200).json(results.rows[0]);
   });
 };
 
