@@ -5,40 +5,13 @@ import { QueryArrayResult, QueryResult } from "pg";
 
 const getStudentFinances = async (req: Request, res: Response) => {
   const id = req.params.id as unknown as number;
-  pool.query("SELECT f.* FROM finances f JOIN student_finance sf ON f.id = sf.finance_id WHERE sf.student_id = $1;", [id], (error: Error, results: QueryArrayResult | QueryResult) => {
+  pool.query("SELECT f.* FROM finances f JOIN student_finance sf ON f.id = sf.finance_id WHERE sf.student_id = $1 ORDER BY f.id ASC;", [id], (error: Error, results: QueryArrayResult | QueryResult) => {
     if (error) {
       res.send(error);
     }
+    console.log(results.rows);
+
     res.status(200).json(results.rows);
-  });
-};
-
-const getStudentNearFinance = async (req: Request, res: Response) => {
-  const id = req.params.id as unknown as number;
-  pool.query("SELECT f.* FROM finances f JOIN student_finance sf ON f.id = sf.finance_id WHERE sf.student_id = $1 GROUP BY f.id", [id], (error: Error, results: QueryArrayResult | QueryResult) => {
-    if (error) {
-      res.send(error);
-    }
-    const finances = results.rows;
-    const nearFinance = finances.filter((finance: any) => {
-      const today = new Date();
-      const payment_deadline = new Date(finance.payment_deadline);
-      const difference = payment_deadline.getTime() - today.getTime();
-      const days = Math.ceil(difference / (1000 * 3600 * 24));
-
-      if (finance.is_paid === false && days <= 7) {
-        return finance;
-      }
-    });
-
-    if (nearFinance.length === 0) {
-      res.status(200).json({ message: "No near finances" });
-      return;
-    }
-
-    console.log(nearFinance[0]);
-
-    res.status(200).json(nearFinance[0]);
   });
 };
 
@@ -84,4 +57,4 @@ const createFinance = async (req: Request, res: Response) => {
   });
 };
 
-export { getStudentFinances, getStudentNearFinance, updateFinance, deleteFinance, createFinance };
+export { getStudentFinances, updateFinance, deleteFinance, createFinance };
