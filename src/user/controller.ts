@@ -87,7 +87,7 @@ const checkToken = async (req: Request, res: Response) => {
       res.status(403).json({ message: "Unauthorized" });
       return;
     }
-    res.status(200).json(decoded);
+    res.status(200).send();
     return;
   });
 };
@@ -96,4 +96,34 @@ const logOut = async (req: Request, res: Response) => {
   res.status(200).clearCookie("token").json({ message: "Logged out" });
 };
 
-export { loginUser, registerUser, checkToken, logOut };
+const getUser = async (req: Request, res: Response) => {
+  const token = req.headers["authorization"];
+  if (!token) {
+    res.status(400).json({ message: "No token provided" });
+    return;
+  }
+
+  jwt.verify(token.toString(), process.env.JWT_SECRET, (err: any, decoded: any) => {
+    if (err) {
+      res.status(403).json({ message: "Unauthorized" });
+      return;
+    }
+    const id = decoded.id;
+    pool.query("SELECT * FROM users WHERE id = $1;", [id], (error: Error, results: QueryArrayResult | QueryResult) => {
+      if (error) {
+        res.send(error);
+        return;
+      }
+      const user = {
+        username: results.rows[0].username,
+        email: results.rows[0].email,
+        role: results.rows[0].role,
+        id: results.rows[0].id,
+      };
+
+      res.status(200).json(user);
+    });
+  });
+};
+
+export { loginUser, registerUser, checkToken, logOut, getUser };
