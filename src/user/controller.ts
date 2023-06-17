@@ -84,7 +84,7 @@ const checkToken = async (req: Request, res: Response) => {
 
   jwt.verify(token.toString(), process.env.JWT_SECRET, (err: any, decoded: any) => {
     if (err) {
-      res.status(403).json({ message: "Unauthorized" });
+      res.status(200).json({ message: "Unauthorized" });
       return;
     }
     res.status(200).send();
@@ -105,7 +105,7 @@ const getUser = async (req: Request, res: Response) => {
 
   jwt.verify(token.toString(), process.env.JWT_SECRET, (err: any, decoded: any) => {
     if (err) {
-      res.status(403).json({ message: "Unauthorized" });
+      res.status(200).json({ message: "Unauthorized" });
       return;
     }
     const id = decoded.id;
