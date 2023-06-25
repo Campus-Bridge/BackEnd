@@ -38,40 +38,29 @@ const loginUser = async (req: Request, res: Response) => {
   });
 };
 
-const registerUser = async (req: Request, res: Response) => {
-  const { username, email, password, role } = req.body;
+const createUser = async (req: Request, res: Response) => {
+  const { email, role } = req.body;
 
-  if (!username || !email || !password) {
+  if (!email || role === undefined) {
     res.status(400).json({ message: "Please fill all fields" });
+    return;
   }
 
   const userExists = await pool.query("SELECT * FROM users WHERE email = $1;", [email]);
   if (userExists.rowCount > 0) {
     res.status(409).json({ message: "User already exists" });
+    return;
   }
+
+  const password = `@${email.toLowerCase()[0]}2023`;
 
   const encryptedPassword = await bcrypt.hash(password, 10);
 
-  const user = {
-    username: username,
-    email: email,
-    password: encryptedPassword,
-    role: role,
-    token: "",
-  };
+  pool.query("INSERT INTO users (email, password, role) VALUES ($1, $2, $3) RETURNING id;", [email.toLowerCase(), encryptedPassword, role], (error: Error, results: any) => {
+    console.log(error);
 
-  pool.query("INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, role;", [username, email.toLowerCase(), encryptedPassword, role], (error: Error, results: any) => {
-    if (error) {
-      res.send(error);
-    }
     const id = results.rows[0].id;
-    const _role = results.rows[0].role;
-    const token = jwt.sign({ id, _role }, process.env.JWT_SECRET, {
-      expiresIn: 86400,
-    });
-    user.token = token;
-
-    res.status(200).json(user);
+    res.status(200).json(id);
   });
 };
 
@@ -115,7 +104,6 @@ const getUser = async (req: Request, res: Response) => {
         return;
       }
       const user = {
-        username: results.rows[0].username,
         email: results.rows[0].email,
         role: results.rows[0].role,
         id: results.rows[0].id,
@@ -126,4 +114,4 @@ const getUser = async (req: Request, res: Response) => {
   });
 };
 
-export { loginUser, registerUser, checkToken, logOut, getUser };
+export { loginUser, createUser, checkToken, logOut, getUser };
